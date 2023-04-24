@@ -2,6 +2,9 @@ const express = require('express')
 const app = express()
 const port = 3000
 const userRouter = require('./src/routes/user.routes')
+const bodyParser = require('body-parser')
+
+app.use(bodyParser.json())
 
 app.use('*',(req, res, next) => {
     const method = req.method

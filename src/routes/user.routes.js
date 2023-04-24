@@ -1,56 +1,35 @@
 const express = require('express')
 const router = express.Router()
+//const bodyParser = require('body-parser')
+
+//router.use(bodyParser.json())
 
 let database = {
-    users: [
-        {
-            id: '0',
-            firstName: 'Cas',
-            lastName: 'Wouda',
-            street: 'Straat 1',
-            city: 'Stad',
-            isActive: true,
-            emailAddress: 'ct@server.nl',
-            password: 'password123',
-            phoneNumber: '0612345678'
-        },
-        {
-            id: '1',
-            firstName: 'Piet',
-            lastName: 'Hendrik',
-            street: 'Straat 2',
-            city: 'Stad',
-            isActive: true,
-            emailAddress: 'ph@server.nl',
-            password: 'password12345',
-            phoneNumber: '0612345678910'
-        }
-    ]
+    users: []
 }
 let id = 0
 
 router.post('/api/user', (req, res) => {
-    res.status(400).res.json(
+    let user = req.body
+    console.log(user);
+    id++
+    user = {
+        id,
+        ...user
+    }
+    database.users.push(user)
+    console.log(database);
+    res.status(201).json(
         {
-            status: 400,
+            status: 201,
             message: 'User Created',
-            data: {
-                id: id++,
-                firstName: 'Klaas',
-                lastName: 'Jan',
-                street: 'Straat 3',
-                city: 'Stad',
-                isActive: true,
-                emailAddress: 'kj@server.nl',
-                password: 'password123456',
-                phoneNumber: '06987654321'
-            }
+            data: database.users
         }
     )
 })
 
 router.get('/api/user', (req, res) => {
-    res.status(200).res.json(
+    res.status(200).json(
         {
             status: 200,
             message: 'User info-endpoint',
@@ -60,7 +39,7 @@ router.get('/api/user', (req, res) => {
 })  
 
 router.get('/api/user/profile', (req, res) => {
-    res.status(200).res.json(
+    res.status(200).json(
         {
             status: 200,
             message: 'User info-endpoint',
@@ -68,9 +47,23 @@ router.get('/api/user/profile', (req, res) => {
         })
 })
 
-router.post('/user', (req, res) => {
-    res.send('Got a POST request')
-    console.log('User 1')
+router.get('/api/user/:userId', (req, res) => {
+    const userId = req.params.userId
+    let user = database.users.filter((item) => item.id == userId)
+    if(user.length > 0) {
+        console.log(user)
+        res.status(200).json({
+            status: 200,
+            message: 'Found user',
+            data: user
+        })
+    }
+    else{
+        res.status(404).json({
+            status: 400,
+            message: `User with ID ${userId} not found`
+        })
+    }
 })
 
 router.post('/user/details', (req, res) => {
