@@ -1,3 +1,6 @@
+const logger = require('../util/utils.js').logger;
+const assert = require('assert');
+
 let database = {
     users: []
 }
@@ -7,6 +10,22 @@ let controller = {
     addUser:(req, res) => {
         let user = req.body
         console.log(user);
+        try {
+            // assert(user === {}, 'Userinfo is missing');
+            assert(typeof user.firstName === 'string', 'firstName must be a string');
+            assert(typeof user.emailAddress === 'string','emailAddress must be a string');
+        } catch (err) {
+            logger.warn(err.message.toString());
+            // Als één van de asserts failt sturen we een error response.
+            res.status(400).json({
+              status: 400,
+              message: err.message.toString(),
+              data: {}
+            });
+            // Nodejs is asynchroon. We willen niet dat de applicatie verder gaat
+            // wanneer er al een response is teruggestuurd.
+            return;
+        }
         id++
         user = {
             id,
@@ -23,11 +42,17 @@ let controller = {
         )
     },
     getAllUsers:(req, res) => {
+        let result = ''
+        if (database.users == '') {
+            result = 'There are no users yet.'
+        } else {
+            result = database.users
+        }
         res.status(200).json(
             {
                 status: 200,
-                message: 'User info-endpoint',
-                data: database.users
+                message: 'User getAll endpoint',
+                data: result
             }
         )
     },
