@@ -84,7 +84,7 @@ let controller = {
                 message: 'Found user',
                 data: user
             })
-            database.users.splice(user)
+            database.users = database.users.filter((item => item.id != userId))
             console.log(`Deleted user with ID ${userId}`);
         } else {
             res.status(404).json({
@@ -109,6 +109,51 @@ let controller = {
                 phoneNumber: '1233444555'
             }
         })
+    },
+    getInfo: (req, res) => {
+        let path = req.path
+        console.log(`op route ${path}`);
+        res.status(201).json(
+            {
+                status: 201,
+                message: 'Server info-endpoint',
+                data: {
+                    studentName: 'Cas',
+                    studentNumber: 1234567,
+                    description: 'Welkom bij de server API van share a meal'
+                }
+            }
+    )},
+    updateUser:(req, res) => {
+        const userId = req.params.userId
+        let oldUser = database.users.filter((item) => item.id == userId)
+        let newUser = req.body
+        newUser = {
+            ...newUser
+        }
+        if(oldUser != undefined) {
+            console.log(newUser)
+            res.status(200).json({
+                status: 200,
+                message: 'Found user',
+                data: newUser
+            })
+            oldUser.id = newUser.id
+            oldUser.firstName = newUser.firstName
+            oldUser.lastName = newUser.lastName
+            oldUser.street = newUser.street
+            oldUser.city = newUser.city
+            oldUser.isActive = newUser.isActive
+            oldUser.emailAddress = newUser.emailAddress
+            oldUser.password = newUser.password
+            oldUser.phoneNumber = newUser.phoneNumber
+        }
+        else{
+            res.status(404).json({
+                status: 400,
+                message: `User with ID ${userId} not found`
+            })
+        }
     }
 }
 
