@@ -1,62 +1,38 @@
 const express = require('express')
 const router = express.Router()
-//const bodyParser = require('body-parser')
+const bodyParser = require('body-parser')
+const userController = require('../controllers/user.controller')
 
-//router.use(bodyParser.json())
+router.use(bodyParser.json())
 
 let database = {
     users: []
 }
 let id = 0
 
-router.post('/api/user', (req, res) => {
-    let user = req.body
-    console.log(user);
-    id++
-    user = {
-        id,
-        ...user
-    }
-    database.users.push(user)
-    console.log(database);
-    res.status(201).json(
-        {
-            status: 201,
-            message: 'User Created',
-            data: database.users
-        }
-    )
-})
+router.post('/api/user', userController.addUser)
 
-router.get('/api/user', (req, res) => {
-    res.status(200).json(
-        {
-            status: 200,
-            message: 'User info-endpoint',
-            data: database.users
-        }
-    )
-})  
+router.get('/api/user', userController.getAllUsers)  
 
-router.get('/api/user/profile', (req, res) => {
-    res.status(200).json(
-        {
-            status: 200,
-            message: 'User info-endpoint',
-            data: database.users
-        })
-})
+router.get('/api/user/profile', userController.getUserProfile)
 
-router.get('/api/user/:userId', (req, res) => {
+router.get('/api/user/:userId', userController.getUserFromId)
+
+router.put('/api/user/:userId', (req, res) => {
     const userId = req.params.userId
-    let user = database.users.filter((item) => item.id == userId)
-    if(user.length > 0) {
-        console.log(user)
+    let oldUser = database.users.filter((item) => item.id == userId)
+    let newUser = req.body
+    newUser = {
+        ...newUser
+    }
+    if(oldUser.length > 0) {
+        console.log(newUser)
         res.status(200).json({
             status: 200,
             message: 'Found user',
-            data: user
+            data: oldUser
         })
+        
     }
     else{
         res.status(404).json({
@@ -64,17 +40,10 @@ router.get('/api/user/:userId', (req, res) => {
             message: `User with ID ${userId} not found`
         })
     }
+
 })
 
-router.post('/user/details', (req, res) => {
-    res.send('Username: ' + username + '\nPassword: ' + password)
-    console.log('Retrieved details')
-})
-
-router.delete('/user', (req, res) => {
-    res.send('Got a DELETE request at /user')
-    console.log('User deleted')
-})
+router.delete('/api/user/:userId', userController.deleteUserWithId)
 
 router.get('/api/info', (req, res) => {
     let path = req.path
