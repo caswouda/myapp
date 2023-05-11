@@ -48,8 +48,8 @@ let controller = {
         
             if (results.length > 0) {
                 logger.error('Email address already in use');
-                return res.status(400).json({
-                    status: 400,
+                return res.status(403).json({
+                    status: 403,
                     message: 'User with specified email address already exists',
                     data: {}
                 });
@@ -69,8 +69,6 @@ let controller = {
                   if (error) {
                     throw new Error(error.message);
                   }
-                  sqlStatement = `INSERT INTO \`user\` (firstName,lastName,isActive,emailAdress,password,phoneNumber,street,city) VALUES ('${req.query.firstName}','${req.query.lastName}',${(req.query.isActive == undefined ? true : req.query.isActive)},'${req.query.emailAdress}','${req.query.password}','${req.query.phoneNumber}','${req.query.street}','${req.query.city}')`;
-                  
                   res.status(201).json({
                     status: 201,
                     message: 'User created',
@@ -134,7 +132,7 @@ let controller = {
           });
     },
     getUserFromId:(req, res) => {
-        logger.trace('Get user profile for user', req.userId);
+        logger.trace('Get user profile for user', req.params.userId);
         let sqlStatement = `Select * FROM \`user\` WHERE \`id\`=${req.params.userId}`;
         pool.getConnection(function (err, conn) {
             if (err) {
@@ -163,7 +161,7 @@ let controller = {
                   logger.trace('Found', results.length, 'results');
                   res.status(200).json({
                     status: 200,
-                    message: 'Get User profile',
+                    message: 'Found user',
                     data: results[0]
                   });
                 }
@@ -196,7 +194,7 @@ let controller = {
                   logger.trace(`User with id ${req.params.userId} is deleted`);
                   res.status(200).json({
                     status: 200,
-                    message: `User with id ${req.params.userId} is deleted`,
+                    message: 'User has been deleted',
                     data: {}
                   });
                 } else {
