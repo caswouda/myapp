@@ -1,98 +1,213 @@
 const logger = require('../util/utils').logger;
 const assert = require('assert');
-const pool = require('../util/db-example.js')
+const pool = require('../util/db-example')
+const Joi = require('joi');
+const userSchema = require('../util/validation');
 
 let database = {
-    users: []
+    users: [{
+        id: 1,
+        firstName: "Test",
+        lastName: "Test",
+        street: "Lovensdijkstraat",
+        city: "Breda",
+        isActive: "false",
+        emailAdress: "Test@gmail.com",
+        password: "123456",
+        phoneNumber: "12345678"
+    }, {
+        id: 2,
+        firstName: "Hendrik",
+        lastName: "Jan",
+        street: "Straat",
+        city: "Stad",
+        isActive: "true",
+        emailAdress: "hj@gmail.com",
+        password: "wachtwoord",
+        phoneNumber: "0612345678"
+    }]
 }
 let id = 0
 
 let controller = {
     addUser:(req, res) => {
-        let user = req.body
-        console.log(user);
-        try {
-            // assert(user === {}, 'Userinfo is missing');
-            assert(typeof user.firstName === 'string', 'firstName must be a string');
-            assert(typeof user.emailAddress === 'string','emailAddress must be a string');
-        } catch (err) {
-            logger.warn(err.message.toString());
-            // Als één van de asserts failt sturen we een error response.
-            res.status(400).json({
-              status: 400,
-              message: err.message.toString(),
-              data: {}
-            });
-            // Nodejs is asynchroon. We willen niet dat de applicatie verder gaat
-            // wanneer er al een response is teruggestuurd.
-            return;
-        }
-        id++
-        user = {
-            id,
-            ...user
-        }
-        database.users.push(user)
-        console.log(database);
-        res.status(201).json(
-            {
-                status: 201,
-                message: 'User Created',
-                data: database.users
+        logger.info('Register user');
+        const user = req.body;
+        logger.trace('user = ', user);
+        pool.getConnection(function(err, conn) {
+            if(err){
+              logger.error('error ', err)
+              next(err.message)
             }
-        )
+            if(conn){
+              pool.query('SELECT * FROM `user` WHERE `emailAdress` = ?', [user.emailAdress], function(err, results, fields) {
+                if (err) {
+                  logger.error('Database error: ' + err.message);
+                  return next(err.message);
+                }
+        
+            if (results.length > 0) {
+                logger.error('Email address already in use');
+                return res.status(403).json({
+                    status: 403,
+                    message: 'User with specified email address already exists',
+                    data: {}
+                });
+            } else {
+                try {
+                    const newUser = {
+                      firstName: user.firstName,
+                      lastName: user.lastName,
+                      isActive: user.isActive,
+                      emailAdress: user.emailAdress,
+                      password: user.password,
+                      phoneNumber: user.phoneNumber,
+                      street: user.street,
+                      city: user.city
+                    };
+                  const { error, value } = userSchema.validate(newUser);
+                  if (error) {
+                    throw new Error(error.message);
+                  }
+                  res.status(201).json({
+                    status: 201,
+                    message: 'User created',
+                    data: newUser
+                  });
+                } catch (err) {
+                    logger.error('Userdata not complete: ' + err.message.toString());
+                    res.status(400).json({
+                    status: 400,
+                    message: err.message.toString(),
+                    data: {}
+                    });
+                }
+            }
+            })
+            pool.releaseConnection(conn);
+          }
+        })
     },
-    getAllUsers:(req, res) => {
-        let result = ''
-        if (database.users == '') {
-            result = 'There are no users yet.'
-        } else {
-            result = database.users
-        }
-        res.status(200).json(
-            {
-                status: 200,
-                message: 'User getAll endpoint',
-                data: result
+    getAllUsers:(req, res, next) => {
+        logger.info('get all users')
+        let sqlStatement = 'Select * FROM `user`';
+        if (Object.keys(req.query).length != 0) {
+            for (let [key, value] of Object.entries(req.query)) {
+                if (key != 'isActive') {
+                    value = `'${value}'`
+                }
+                if (!sqlStatement.includes('WHERE')) {
+                    sqlStatement += ` WHERE \`${key}\`= ${value}`
+                } else {
+                    sqlStatement += ` AND \`${key}\`= ${value}`
+                }
             }
-        )
+        }
+        pool.getConnection(function (err, conn) {
+            // Do something with the connection
+            if (err) {
+                logger.error(`MySQL error: ${err}`);
+                next(`MySQL error: ${err.message}`)
+            }
+            if (conn) {
+              conn.query(sqlStatement, function (err, results, fields) {
+                if (err) {
+                  logger.err(err.message);
+                  next({
+                    code: 409,
+                    message: err.message
+                  });
+                }
+                if (results) {
+                  logger.info('Found', results.length, 'results');
+                  res.status(200).json({
+                    code: 200,
+                    message: 'User getAll endpoint',
+                    data: results
+                  });
+                }
+              });
+              pool.releaseConnection(conn);
+            }
+          });
     },
     getUserFromId:(req, res) => {
-        const userId = req.params.userId
-        let user = database.users.filter((item) => item.id == userId)
-        if(user.length > 0) {
-            console.log(user)
-            res.status(200).json({
-                status: 200,
-                message: 'Found user',
-                data: user
-            })
-        }
-        else{
-            res.status(404).json({
-                status: 404,
-                message: `User with ID ${userId} not found`
-            })
-        }
+        logger.trace('Get user profile for user', req.params.userId);
+        let sqlStatement = `Select * FROM \`user\` WHERE \`id\`=${req.params.userId}`;
+        pool.getConnection(function (err, conn) {
+            if (err) {
+              logger.error(err.code, err.syscall, err.address, err.port);
+              next({
+                code: 500,
+                message: err.code
+              });
+            }
+            if (conn) {
+              conn.query(sqlStatement, [req.userId], (err, results, fields) => {
+                if (err) {
+                  logger.error(err.message);
+                  next({
+                    status: 409,
+                    message: err.message
+                  });
+                }
+                if (results == '') {
+                    res.status(404).json({
+                        status: 404,
+                        message: `User with id ${req.params.userId} not found`,
+                        data:[]
+                    })
+                }else {
+                  logger.trace('Found', results.length, 'results');
+                  res.status(200).json({
+                    status: 200,
+                    message: 'Found user',
+                    data: results[0]
+                  });
+                }
+              });
+              pool.releaseConnection(conn);
+            }
+        });
     },
-    deleteUserWithId:(req, res) => {
-        const userId = req.params.userId
-        let user = database.users.filter((item) => item.id == userId)
-        if(user.length > 0){
-            console.log(user)
-            res.status(200).json({
-                status: 200,
-                message: 'Found user',
-                data: user
-            })
-            database.users = database.users.filter((item => item.id != userId))
-            console.log(`Deleted user with ID ${userId}`);
-        } else {
-            res.status(404).json({
-                status: 404,
-                message: `User with ID ${userId} not found`
-            })
-        }
+    deleteUserWithId:(req, res, next) => {
+        logger.info(`User with token ${req.query.token} called delete userdata for: ${req.params.userId}`)
+        let sqlStatement = `DELETE FROM \`user\` WHERE \`id\`=${req.params.userId}`;
+        logger.debug(sqlStatement)
+        pool.getConnection(function (err, conn) {
+            if (err) {
+              logger.error(err.code, err.syscall, err.address, err.port);
+              next({
+                code: 500,
+                message: err.code
+              });
+            }
+            if (conn) {
+              conn.query(sqlStatement, [req.userId], (err, results, fields) => {
+                if (err) {
+                  logger.error(err.message);
+                  next({
+                    status: 409,
+                    message: err.message
+                  });
+                } else if (results.affectedRows > 0) {
+                  logger.trace(`User with id ${req.params.userId} is deleted`);
+                  res.status(200).json({
+                    status: 200,
+                    message: 'User has been deleted',
+                    data: {}
+                  });
+                } else {
+                    res.status(404).json({
+                        status: 404,
+                        message: `User with id ${req.params.userId} not found`,
+                        data:[]
+                    })
+                }
+              });
+              pool.releaseConnection(conn);
+            }
+        });
     },
     getUserProfile:(req, res) => {
         res.status(200).json({
@@ -125,36 +240,108 @@ let controller = {
                 }
             }
     )},
-    updateUser:(req, res) => {
-        const userId = req.params.userId
-        let oldUser = database.users.filter((item) => item.id == userId)
-        let newUser = req.body
-        newUser = {
-            ...newUser
-        }
-        if(oldUser != undefined) {
-            console.log(newUser)
+    updateUser:(req, res, next) => {
+        const userId = req.params.userId;
+            logger.info(`User with id ${req.params.userId} wants to update userdata`)
+            let sqlStatement = `Select * FROM \`user\` WHERE \`id\`=${req.params.userId}'`;
+            pool.getConnection(function (err, conn) {
+                if (err) {
+                  logger.error(err.code, err.syscall, err.address, err.port);
+                  next({
+                    code: 500,
+                    message: err.code
+                  });
+                }
+                if (conn) {
+                  conn.query(sqlStatement, [req.userId], (err, results, fields) => {
+                    if (err) {
+                        logger.error(`MySQL error: ${err}`)
+                        next({
+                            status: 409,
+                            message: err.message
+                        });
+                    } else if (results.length != 0) {
+                        let user = results[0]
+                        let sqlStatement = `UPDATE \`user\` SET`;
+                        for (let [key, value] of Object.entries((({ emailAdress, ...o }) => o)(req.query))) {
+                            if (user[key] != undefined) {
+                                logger.debug(`Changing ${key} for #${userId} from ${user[key]} to ${value}`)
+                                user[key] = value;
+                                if (key != 'isActive') {
+                                    value = `'${value}'`
+                                }
+                                if (!sqlStatement.endsWith("SET")) {
+                                    sqlStatement += `, \`${key}\` = ${value}`;
+                                } else {
+                                    sqlStatement += ` \`${key}\` = ${value}`;
+                                }
+                            } else {
+                                logger.warn(`Key ${key} is not applicable to User`)
+                            }
+                        }
+                        sqlStatement += ` WHERE \`id\`=${req.params.userId} AND \`emailAdress\`='${req.query.emailAdress}'`;
+                        logger.debug(sqlStatement)
+                        conn.query(sqlStatement, function (err, results, fields) {
+                            if (err) {
+                                logger.error(err.message);
+                                next({
+                                    status: 409,
+                                    message: err.message
+                                        });
+                            } else {
+                                res.status(200).json({
+                                    status: 200,
+                                    message: `User with Id #${userId} is updated`,
+                                    data: user
+                                });
+                            }
+                        }); 
+                    } else {
+                        res.status(404).json({
+                            status: 404,
+                            message: `User with id ${req.params.userId} not found`,
+                            data:[]
+                        })
+                    }
+                  });
+                  pool.releaseConnection(conn);
+                }
+            });
+
+    },
+    filterUser:(req, res) => {
+        const queryField = Object.entries(req.query);
+
+        if(queryField.length == 2) {
             res.status(200).json({
                 status: 200,
-                message: 'Found user',
-                data: newUser
-            })
-            oldUser.id = newUser.id
-            oldUser.firstName = newUser.firstName
-            oldUser.lastName = newUser.lastName
-            oldUser.street = newUser.street
-            oldUser.city = newUser.city
-            oldUser.isActive = newUser.isActive
-            oldUser.emailAddress = newUser.emailAddress
-            oldUser.password = newUser.password
-            oldUser.phoneNumber = newUser.phoneNumber
-        }
-        else{
-            res.status(404).json({
-                status: 400,
-                message: `User with ID ${userId} not found`
+                message: 'Gefilterd op 2 parameters',
+                data: {}
+            })    
+            console.log(`Dit is field 1 ${queryField[0][0]} = ${queryField[0][1]}`);
+        } else if(queryField.length == 1) {
+            res.status(200).json({
+                status: 200,
+                message: 'Gefilterd op 1 parameter',
+                data: {}
+            })    
+        } else {
+            res.status(200).json({
+                status: 200,
+                message: 'Overzicht van alle users',
+                data: database.users
             })
         }
+
+        //const field1 = req.query.firstName;
+        //const field2 = req.query.isActive;
+        //console.log(`Dit is field 1 ${field1}`);
+        //console.log(`Dit is field 2 ${field2}`);
+        res.status(200).json({
+            status: 200,
+            message: `Gefilterd op...`,
+            data: {}
+        })
     }
 }
 

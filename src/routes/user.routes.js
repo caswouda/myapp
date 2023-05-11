@@ -24,4 +24,6 @@ router.delete('/api/user/:userId', userController.deleteUserWithId)
 
 router.get('/api/info', userController.getInfo)
 
+router.get('/api/user', userController.filterUser)
+
 module.exports = router
