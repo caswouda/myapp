@@ -3,7 +3,7 @@ name: Testing and deployment
 on:
   push:
     branches:
-      - main
+      - Programmeren4
 
 jobs:
   integrationtests:
