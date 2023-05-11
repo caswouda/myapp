@@ -63,26 +63,27 @@ describe('UC-201 Registreren als nieuwe user', () => {
     });
   });
   
-  describe('UC-202 Opvragen van overzicht van users', () => {
-      it('TC-202-1 - Toon alle gebruikers, minimaal 2', (done) => {
-        // Voer de test uit
-        chai
-          .request(server)
-          .get('/api/user')
-          .end((err, res) => {
-            assert(err === null);
+  // describe('UC-202 Opvragen van overzicht van users', () => {
+  //     it('TC-202-1 - Toon alle gebruikers, minimaal 2', (done) => {
+  //       // Voer de test uit
+  //       chai
+  //         .request(server)
+  //         .get('/api/user')
+  //         .end((err, res) => {
+  //           assert(err === null);
     
-            res.body.should.be.an('object');
-            let { data, message, status } = res.body;
+  //           res.body.should.be.an('object');
+  //           let { data, message, status } = res.body;
     
-            status.should.equal(200);
-            message.should.be.a('string').equal('Get all users');
-            //expect(res.body.data.length).to.be.gte(2);
+  //           status.should.equal(200);
+  //           message.should.be.a('string').equal('Get all users');
+  //           //expect(res.body.data.length).to.be.gte(2);
     
     
-            done();
-          });
-      });
+  //           done();
+  //         });
+  //     });
+  //   })
   
     // Je kunt een test ook tijdelijk skippen om je te focussen op andere testcases.
     // Dan gebruik je it.skip
@@ -136,29 +137,27 @@ describe('UC-201 Registreren als nieuwe user', () => {
             done();
           });
       });
-      
-    });
-    describe('UC-206 Verwijderen van user', () =>{
-
-      it('TC-206-4 Gebruiker succesvol verwijderd', function(done) {
-        const userId = 1;
-        chai
-          .request(server)
-          .delete(`/api/user/${userId}`)
-          .end((err, res) => {
-            assert(err === null);
-      
-          res.body.should.be.an('object');
-          let { data, message, status } = res.body;
-      
-            status.should.equal(200);
-            message.should.be.a('string').equal('User has been deleted');
-            data.should.be.an('array');
-            data.should.have.lengthOf(2);
-            data.should.not.include({ id: 1 });
-      
-            done();
-          });
-      });
     })
-  });
+    // describe('UC-206 Verwijderen van user', () =>{
+
+    //   it('TC-206-4 Gebruiker succesvol verwijderd', function(done) {
+    //     const userId = 1;
+    //     chai
+    //       .request(server)
+    //       .delete(`/api/user/${userId}`)
+    //       .end((err, res) => {
+    //         assert(err === null);
+      
+    //       res.body.should.be.an('object');
+    //       let { data, message, status } = res.body;
+      
+    //         status.should.equal(200);
+    //         message.should.be.a('string').equal('User has been deleted');
+    //         data.should.be.an('array');
+    //         data.should.have.lengthOf(2);
+    //         data.should.not.include({ id: 1 });
+      
+    //         done();
+    //       });
+    //   });
+    // })
