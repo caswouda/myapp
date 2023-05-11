@@ -1,6 +1,6 @@
-const logger = require('../util/utils.js').logger;
+const logger = require('../util/utils').logger;
 const assert = require('assert');
-const pool = require('../../db-example.js')
+const pool = require('../util/db-example.js')
 
 let database = {
     users: []
