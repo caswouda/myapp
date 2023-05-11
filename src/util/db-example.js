@@ -1,11 +1,12 @@
 const mysql = require('mysql2');
 const logger = require('../util/utils').logger;
+const config = require('../../config.json')
 
 // Create the connection pool. The pool-specific settings are the defaults
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  database: process.env.DB_DATABASE || 'shareameal',
+  database: process.env.DB_DATABASE || config.mysql_database,
   port: process.env.DB_PORT || 3306,
   password: process.env.DB_PASSWORD || '',
   multipleStatements: true,

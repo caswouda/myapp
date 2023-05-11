@@ -1,0 +1,7 @@
+{
+    "apiport": 3000,
+    "mysql_host": "localhost",
+    "mysql_user": "root",
+    "mysql_database": "share_a_meal",
+    "mysql_port": 3306
+}

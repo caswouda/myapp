@@ -1,9 +1,29 @@
 const logger = require('../util/utils').logger;
 const assert = require('assert');
-const pool = require('../util/db-example.js')
+const pool = require('../util/db-example')
 
 let database = {
-    users: []
+    users: [{
+        id: 1,
+        firstName: "Test",
+        lastName: "Test",
+        street: "Lovensdijkstraat",
+        city: "Breda",
+        isActive: "false",
+        emailAdress: "Test@gmail.com",
+        password: "123456",
+        phoneNumber: "12345678"
+    }, {
+        id: 2,
+        firstName: "Hendrik",
+        lastName: "Jan",
+        street: "Straat",
+        city: "Stad",
+        isActive: "true",
+        emailAdress: "hj@gmail.com",
+        password: "wachtwoord",
+        phoneNumber: "0612345678"
+    }]
 }
 let id = 0
 
@@ -42,20 +62,48 @@ let controller = {
             }
         )
     },
-    getAllUsers:(req, res) => {
-        let result = ''
-        if (database.users == '') {
-            result = 'There are no users yet.'
-        } else {
-            result = database.users
-        }
-        res.status(200).json(
-            {
-                status: 200,
-                message: 'User getAll endpoint',
-                data: result
+    getAllUsers:(req, res, next) => {
+        logger.info('get all users')
+        let sqlStatement = 'Select * FROM `user`';
+        if (Object.keys(req.query).length != 0) {
+            for (let [key, value] of Object.entries(req.query)) {
+                if (key != 'isActive') {
+                    value = `'${value}'`
+                }
+                if (!sqlStatement.includes('WHERE')) {
+                    sqlStatement += ` WHERE \`${key}\`= ${value}`
+                } else {
+                    sqlStatement += ` AND \`${key}\`= ${value}`
+                }
             }
-        )
+        }
+        pool.getConnection(function (err, conn) {
+            // Do something with the connection
+            if (err) {
+                logger.error(`MySQL error: ${err}`);
+                next(`MySQL error: ${err.message}`)
+            }
+            if (conn) {
+              conn.query(sqlStatement, function (err, results, fields) {
+                if (err) {
+                  logger.err(err.message);
+                  next({
+                    code: 409,
+                    message: err.message
+                  });
+                }
+                if (results) {
+                  logger.info('Found', results.length, 'results');
+                  res.status(200).json({
+                    code: 200,
+                    message: 'User getAll endpoint',
+                    data: results
+                  });
+                }
+              });
+              pool.releaseConnection(conn);
+            }
+          });
     },
     getUserFromId:(req, res) => {
         const userId = req.params.userId
@@ -155,6 +203,40 @@ let controller = {
                 message: `User with ID ${userId} not found`
             })
         }
+    },
+    filterUser:(req, res) => {
+        const queryField = Object.entries(req.query);
+
+        if(queryField.length == 2) {
+            res.status(200).json({
+                status: 200,
+                message: 'Gefilterd op 2 parameters',
+                data: {}
+            })    
+            console.log(`Dit is field 1 ${queryField[0][0]} = ${queryField[0][1]}`);
+        } else if(queryField.length == 1) {
+            res.status(200).json({
+                status: 200,
+                message: 'Gefilterd op 1 parameter',
+                data: {}
+            })    
+        } else {
+            res.status(200).json({
+                status: 200,
+                message: 'Overzicht van alle users',
+                data: database.users
+            })
+        }
+
+        //const field1 = req.query.firstName;
+        //const field2 = req.query.isActive;
+        //console.log(`Dit is field 1 ${field1}`);
+        //console.log(`Dit is field 2 ${field2}`);
+        res.status(200).json({
+            status: 200,
+            message: `Gefilterd op...`,
+            data: {}
+        })
     }
 }
 
